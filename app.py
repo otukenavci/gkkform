@@ -1,246 +1,183 @@
 import streamlit as st
 import datetime
 
-st.set_page_config(page_title="Giriş Kalite Kontrol Formu", layout="wide")
-st.title("Giriş Kalite Kontrol (GKK) Formu Oluşturucu")
-st.markdown("Belge numaralarını, miktarları ve açıklamaları girerek otomatik GKK formunuzu oluşturun. İşlemi bitirdiğinizde en alttaki kodu kopyalayabilirsiniz.")
+# Google Sheets entegrasyonu
+try:
+    import gspread
+    from google.oauth2.service_account import Credentials
+except ImportError:
+    st.warning("Depolama için 'gspread' ve 'google-auth' kütüphaneleri yüklü olmalıdır.")
 
-# Güncel tarih ön tanımlı olarak gelsin
+st.set_page_config(page_title="GKK Formu Üretici ve Depocu", layout="wide")
+st.title("Giriş Kalite Kontrol (GKK) Form Sihirbazı & Dijital Arşiv")
+st.markdown("Verileri doldurun; sistem hem **Word (.doc)** belgesini indirecek hem de **bulut veritabanına** kaydedecektir.")
+
 bugun = datetime.datetime.now().strftime("%d.%m.%Y")
 
-with st.form("gkk_formu"):
-    st.subheader("1. Genel Bilgiler")
-    col1, col2, col3, col4 = st.columns(4)
+# --- Google Sheets Kayıt Fonksiyonu ---
+def verilere_kaydet(veri_listesi):
+    try:
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
+        client = gspread.authorize(creds)
+        
+        sheet = client.open("GKK_Form_Deposu").sheet1
+        sheet.append_row(veri_listesi)
+        return True
+    except Exception as e:
+        st.error(f"Depolama bağlantı hatası (Secrets ayarlarınızı kontrol edin): {e}")
+        return False
+
+# --- Arayüz Giriş Alanları ---
+with st.form("gkk_form_alanlari"):
+    st.subheader("📋 Ürün ve Sipariş Bilgileri")
+    col1, col2 = st.columns(2)
     with col1:
         tarih = st.text_input("Tarih", value=bugun)
-    with col2:
         siparis_no = st.text_input("Sipariş No")
-    with col3:
+    with col2:
         malzeme_no = st.text_input("Malzeme No")
-    with col4:
         malzeme_aciklamasi = st.text_input("Malzeme Açıklaması")
 
-    st.subheader("2. Belge ve Ölçüm Kontrolleri")
-    st.info("İlgili belge numarasını girdiğinizde Durumunu seçiniz. Belge no boş bırakılırsa otomatik olarak açıklama kısmına not düşülecektir.")
+    st.subheader("🔍 Kontroller ve Uygunluk Durumları")
     
-    col_b1, col_b2, col_b3 = st.columns(3)
-    with col_b1:
-        st.markdown("**Hammadde Kalite Belgesi**")
-        belgeno1 = st.text_input("Belge No (Hammadde)")
-        b1_durum = st.radio("Durum", ["Uygun", "Uygun Değil", "N/A"], key="b1")
-    with col_b2:
-        st.markdown("**Kaplama/Boya COC Belgesi**")
-        belgeno2 = st.text_input("Belge No (Kaplama/Boya)")
-        b2_durum = st.radio("Durum", ["Uygun", "Uygun Değil", "N/A"], key="b2")
-    with col_b3:
-        st.markdown("**Ölçü Kontrolü**")
-        belgeno3 = st.text_input("Belge No (Ölçü Kontrol)")
-        b3_durum = st.radio("Durum", ["Uygun", "Uygun Değil", "N/A"], key="b3")
+    b1_col, b1_rad = st.columns([3, 2])
+    belgeno1 = b1_col.text_input("Hammadde Kalite Belgesi No")
+    b1_durum = b1_rad.radio("Hammadde Durumu", ["Uygun", "Uygun Değil", "N/A"], horizontal=True, key="h1")
+    
+    b2_col, b2_rad = st.columns([3, 2])
+    belgeno2 = b2_col.text_input("Kaplama/Boya COC Belgesi No")
+    b2_durum = b2_rad.radio("Kaplama/Boya Durumu", ["Uygun", "Uygun Değil", "N/A"], horizontal=True, key="k1")
+    
+    b3_col, b3_rad = st.columns([3, 2])
+    belgeno3 = b3_col.text_input("Ölçü Kontrolü Belge No")
+    b3_durum = b3_rad.radio("Ölçü Kontrol Durumu", ["Uygun", "Uygun Değil", "N/A"], horizontal=True, key="o1")
 
-    st.subheader("3. Sonuç, Karar ve Miktarlar")
-    col_m1, col_m2, col_m3 = st.columns(3)
-    with col_m1:
-        kontrol_miktari = st.text_input("Kontrol Miktarı")
-        kabul_miktar = st.text_input("Kabul Miktarı")
-        kabul_miktar_tarih = st.text_input("Kabul Tarih", value=bugun if kabul_miktar else "")
-    with col_m2:
-        red_iade_miktar = st.text_input("Red/İade Miktarı")
-        red_iade_miktar_tarih = st.text_input("Red/İade Tarih", value=bugun if red_iade_miktar else "")
-        ayiklama_miktar = st.text_input("Ayıklama Miktarı")
-        ayiklama_miktar_tarih = st.text_input("Ayıklama Tarih", value=bugun if ayiklama_miktar else "")
-    with col_m3:
-        sartli_kabul_miktar = st.text_input("Şartlı Kabul Miktarı")
-        sartli_kabul_miktar_tarih = st.text_input("Şartlı Kabul Tarih", value=bugun if sartli_kabul_miktar else "")
-        proje_sorumlusu = st.text_input("Proje Sorumlusu")
-        proje_sorumlusu_tarih = st.text_input("Proje Sor. Tarih", value=bugun if proje_sorumlusu else "")
+    st.subheader("📊 Miktarlar ve Karar")
+    m1, m2, m3, m4 = st.columns(4)
+    kontrol_miktari = m1.text_input("Kontrol Miktarı")
+    kabul_miktar = m2.text_input("Kabul Miktarı")
+    red_iade_miktar = m3.text_input("Red/İade Miktarı")
+    sartli_kabul_miktar = m4.text_input("Şartlı Kabul Miktarı")
+    
+    m5, m6 = st.columns(2)
+    ayiklama_miktar = m5.text_input("Ayıklama Miktarı")
+    proje_sorumlusu = m6.text_input("Şartlı Kabul İçin Onay Veren Proje Sorumlusu")
 
-    st.subheader("4. Değerlendirme ve Açıklamalar")
-    baslik_secenekleri = [
+    st.subheader("📝 Değerlendirme")
+    aciklama_baslik = st.selectbox("Değerlendirme Başlığı", [
         "1. MALZEMELERİN SEVKİNE İZİN VERİLDİ",
         "2. MALZEMELERİN ŞARTLI KABUL İLE SEVKİNE İZİN VERİLDİ",
         "3. MALZEMELERİN SEVKİNE İZİN VERİLMEDİ."
-    ]
-    aciklama_baslik = st.selectbox("Değerlendirme Başlığı Seçiniz", baslik_secenekleri)
-    aciklama_detay_manuel = st.text_area("Manuel Açıklama / Değerlendirme Detayı (Gerekliyse)")
+    ])
+    manuel_detay = st.text_area("Manuel Değerlendirme Notunuz (Varsa)")
 
-    submit_button = st.form_submit_button(label="Formu Oluştur")
+    submit = st.form_submit_button("Form Belgesini Hazırla ve Depola")
 
-if submit_button:
-    # --- Otomatik Eksik Belge Cümleleri Mantığı ---
+if submit:
+    # Tarih atamaları
+    k_tarih = bugun if kabul_miktar else ""
+    r_tarih = bugun if red_iade_miktar else ""
+    a_tarih = bugun if ayiklama_miktar else ""
+    s_tarih = bugun if sartli_kabul_miktar else ""
+    p_tarih = bugun if proje_sorumlusu else ""
+
+    # Otomatik ClickUp Uyarı Mantığı
     otomatik_notlar = []
     if not belgeno1.strip():
         otomatik_notlar.append("Hammadde CoC evrakları ilgili clickup listesinde görülememiştir.")
     if not belgeno2.strip():
         otomatik_notlar.append("Kaplama/Boya CoC evrakları ilgili clickup listesinde görülememiştir.")
     
-    # Manuel girilen metnin altına otomatik notları ekleme
-    nihai_aciklama_detay = aciklama_detay_manuel.strip()
+    aciklama_detay = manuel_detay.strip()
     if otomatik_notlar:
-        eklenen_cumleler = "\n".join(otomatik_notlar)
-        if nihai_aciklama_detay:
-            nihai_aciklama_detay += f"\n\n{eklenen_cumleler}"
+        ekler = "<br>".join(otomatik_notlar)
+        if aciklama_detay:
+            aciklama_detay += f"<br><br>{ekler}"
         else:
-            nihai_aciklama_detay = eklenen_cumleler
+            aciklama_detay = ekler
 
-    # --- Tik İşaretlerini Ayarlama Fonksiyonu ---
-    def tik_getir(mevcut_durum, hedef_durum):
-        return "☑" if mevcut_durum == hedef_durum else "☐"
+    kabul_box = "☑" if kabul_miktar else "☐"
+    red_box = "☑" if red_iade_miktar else "☐"
+    ayiklama_box = "☑" if ayiklama_miktar else "☐"
+    sartli_box = "☑" if sartli_kabul_miktar else "☐"
 
-    # --- Form Şablonu (Orijinal Format Birebir Korunmuştur) ---
-    # Python formatlaması için süslü parantezler kullanılmıştır.
-    sablon = f"""![Teknolus Logo](https://upload.wikimedia.org/wikipedia/commons/a/a2/Teknolus_Logo.jpg)
- | Giriş Kalite Kontrol Ürün Değerlendirme Formu
- | Doküman No
- | QLT-F25
+    def t(current, target): return "☑" if current == target else "☐"
 
- |  | Revizyon Tarihi
- | 15.01.2026
+    # --- Buluta Kaydedilecek Satır Verisi ---
+    yeni_satir = [
+        tarih, siparis_no, malzeme_no, malzeme_aciklamasi, 
+        belgeno1, b1_durum, belgeno2, b2_durum, belgeno3, b3_durum,
+        kontrol_miktari, kabul_miktar, red_iade_miktar, sartli_kabul_miktar, 
+        proje_sorumlusu, aciklama_baslik, aciklama_detay.replace('<br>', ' ')
+    ]
+    
+    # Veritabanına Yazma İşlemi (Hata vermemesi için sessiz geçebilir veya uyarabilir)
+    if "gcp_service_account" in st.secrets:
+        basarili_mi = verilere_kaydet(yeni_satir)
+        if basarili_mi:
+            st.success("✅ Verileriniz başarıyla bulut deposuna (Google Sheets) kaydedildi!")
+    else:
+        st.info("ℹ️ Form oluşturuldu ancak Google Sheets bağlantı ayarları (Secrets) henüz yapılmadığı için veritabanına kaydedilmedi.")
 
- |  | Revizyon No
- | 0
-
- |  | Hazırlayan
- | KYS
-
- |  | Onaylayan
- | KYT
-
-Envanter Belge No / Kalem No
-<td colspan=4/> | -
-<td colspan=4/> | Tarih
-<td colspan=3/> | {tarih}
-<td colspan=3/>
-Malzeme No 
-<td colspan=4/> | {malzeme_no}
-<td colspan=4/> | Malzeme Açıklaması
-<td colspan=3/> | {malzeme_aciklamasi}
-<td colspan=3/>
-Sipariş No
-<td colspan=4/> | {siparis_no}
-<td colspan=4/> | Kontrol Eden GKK Sorumlusu
-<td colspan=3/> | ÖTÜKEN AVCI
-<td colspan=3/>
-KONTROL VE İNCELEMELER
-<td colspan=14/>
-KONTROL TİPİ
- | KONTROLLER
-<td colspan=6/> | Belge No
- | Uygun
-<td colspan=2/> | Uygun Değil
-<td colspan=3/> | N/A
-
-BELGE
-KONT.
- | Ürün Uygunluk Belgesi
-<td colspan=6/> |  | ☐
-<td colspan=2/> | ☐
-<td colspan=3/> | ☐
-
- | Hammalzeme Kalite Belgesi
-<td colspan=6/> | {belgeno1}
- | {tik_getir(b1_durum, "Uygun")}
-<td colspan=2/> | {tik_getir(b1_durum, "Uygun Değil")}
-<td colspan=3/> | {tik_getir(b1_durum, "N/A")}
-
- | Kaplama/Boya COC Belgesi
-<td colspan=6/> | {belgeno2}
- | {tik_getir(b2_durum, "Uygun")}
-<td colspan=2/> | {tik_getir(b2_durum, "Uygun Değil")}
-<td colspan=3/> | {tik_getir(b2_durum, "N/A")}
-
- | Isıl işlem / Kaynak işlemleri COC Belgesi
-<td colspan=6/> |  | ☐
-<td colspan=2/> | ☐
-<td colspan=3/> | ☐
-
- | İrsaliye/teslim belgesi  
-<td colspan=6/> |  | ☐
-<td colspan=2/> | ☐
-<td colspan=3/> | ☐
-
-GÖZ KONT.
- | Parti miktarı  doğruluğu
-<td colspan=6/> |  | ☐
-<td colspan=2/> | ☐
-<td colspan=3/> | ☐
-
- | Ürün paketlemesi
-<td colspan=6/> |  | ☐
-<td colspan=2/> | ☐
-<td colspan=3/> | ☐
-
- | Malzeme göz kontrolü
-<td colspan=6/> |  | ☐
-<td colspan=2/> | ☐
-<td colspan=3/> | ☐
-
-ÖLÇÜ KONT.
- | Ölçü Kontrolü
-<td colspan=6/> | {belgeno3}
- | {tik_getir(b3_durum, "Uygun")}
-<td colspan=2/> | {tik_getir(b3_durum, "Uygun Değil")}
-<td colspan=3/> | {tik_getir(b3_durum, "N/A")}
-
- | Mastar Kontrolü
-<td colspan=6/> |  | ☐
-<td colspan=2/> | ☐
-<td colspan=3/> | ☐
-
-FONKS. KONT.
- | Ürünün çalışma durumu kontrolünü
-<td colspan=6/> |  | ☐
-<td colspan=2/> | ☐
-<td colspan=3/> | ☐
-
-KONTROL ARACI ADI (DEMİRBAŞ ADI)
-<td colspan=5/> | KONTROL ARACI TİPİ                       (Ölçü Aleti/Mastar/Montaj Parçası)
-<td colspan=3/> | KONTROL ARACI NO
-(Parça No/Seri No/Demirbaş No)
-<td colspan=4/> | ÖLÇÜM BELGE NO
-<td colspan=2/>
-<td colspan=5/> | <td colspan=3/> | <td colspan=4/> | <td colspan=2/>
-<td colspan=5/> | <td colspan=3/> | <td colspan=4/> | <td colspan=2/>
-<td colspan=5/> | <td colspan=3/> | <td colspan=4/> | <td colspan=2/>
-<td colspan=5/> | <td colspan=3/> | <td colspan=4/> | <td colspan=2/>
-<td colspan=5/> | <td colspan=3/> | <td colspan=4/> | <td colspan=2/>
-SONUÇ
-<td colspan=14/>
-KONTROL MİKTARI
-<td colspan=3/> | {kontrol_miktari}
-<td colspan=11/>
-KARAR
-<td colspan=3/> | ☐ KABUL
-<td colspan=3/> | ☐ RED/İADE
-<td colspan=2/> | ☐AYIKLAMA
- | ☐ ŞARTLI KABUL
-<td colspan=3/> | PROJE SORUMLUSU      (Şartlı Kabul İçin Onay Veren Yetkili)
-<td colspan=2/>
-MİKTAR
-<td colspan=3/> | {kabul_miktar}
-<td colspan=3/> | {red_iade_miktar}
-<td colspan=2/> | {ayiklama_miktar}
- | {sartli_kabul_miktar}
-<td colspan=3/> | {proje_sorumlusu}
-<td colspan=2/>
-TARİH
-<td colspan=3/> | {kabul_miktar_tarih}
-<td colspan=3/> | {red_iade_miktar_tarih}
-<td colspan=2/> | {ayiklama_miktar_tarih}
- | {sartli_kabul_miktar_tarih}
-<td colspan=3/> | {proje_sorumlusu_tarih}
-<td colspan=2/>
-RED/AYIKLAMA NEDENİ
-<td colspan=3/> | ☐ Tedarikçi                   ☐Satın Alma                                ☐ Tasarım                          ☐ Planlama
-<td colspan=11/>
-DEĞERLENDİRME ve AÇIKLAMALAR
-<td colspan=14/>
-{aciklama_baslik}
-{nihai_aciklama_detay}
-<td colspan=14/>
-GKK SORUMLUSU  ONAYI
-AD SOYAD İMZA TARİH
-<td colspan=2/> | ÖTÜKEN AVCI
-<td colspan=12/>"""
-
-    st.success("Form başarıyla oluşturuldu! Aşağıdaki kutunun sağ üst köşesindeki kopyalama butonuna tıklayarak kodu alabilirsiniz.")
-    st.code(sablon, language="markdown")
+    # --- Orijinal Word HTML Alanı ---
+    word_html = f"""
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head><meta charset="utf-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; font-size: 10pt; }}
+        table {{ width: 100%; border-collapse: collapse; margin-bottom: 5px; }}
+        td {{ border: 1px solid #000000; padding: 5px; vertical-align: top; }}
+        .header-title {{ font-weight: bold; text-align: center; font-size: 11pt; vertical-align: middle; }}
+        .bg-gray {{ background-color: #F2F2F2; font-weight: bold; text-align: center; }}
+        .center {{ text-align: center; }}
+    </style></head>
+    <body>
+    <table>
+        <tr>
+            <td rowspan="5" style="width: 25%; text-align: center; vertical-align: middle;"><img src="https://www.teknolus.com/images/logo.png" width="130"><br><span style="font-size: 8pt;">http://www.teknolus.com</span></td>
+            <td rowspan="5" class="header-title" style="width: 45%;">Giriş Kalite Kontrol Ürün Değerlendirme Formu</td>
+            <td style="width: 15%; font-weight: bold;">Doküman No</td><td style="width: 15%;">QLT-F25</td>
+        </tr>
+        <tr><td style="font-weight: bold;">Revizyon Tarihi</td><td>15.01.2026</td></tr>
+        <tr><td style="font-weight: bold;">Revizyon No</td><td>0</td></tr>
+        <tr><td style="font-weight: bold;">Hazırlayan</td><td>KYS</td></tr>
+        <tr><td style="font-weight: bold;">Onaylayan</td><td>KYT</td></tr>
+    </table>
+    <table>
+        <tr><td style="font-weight: bold; width: 25%;">Envanter Belge No / Kalem No</td><td style="width: 25%;">-</td><td style="font-weight: bold; width: 25%;">Tarih</td><td style="width: 25%;">{tarih}</td></tr>
+        <tr><td style="font-weight: bold;">Malzeme No</td><td>{malzeme_no}</td><td style="font-weight: bold;">Malzeme Açıklaması</td><td>{malzeme_aciklamasi}</td></tr>
+        <tr><td style="font-weight: bold;">Sipariş No</td><td>{siparis_no}</td><td style="font-weight: bold;">Kontrol Eden GKK Sorumlusu</td><td>ÖTÜKEN AVCI</td></tr>
+    </table>
+    <table>
+        <tr><td colspan="7" class="bg-gray">KONTROL VE İNCELEMELER</td></tr>
+        <tr style="font-weight: bold; background-color: #E6E6E6;">
+            <td style="width: 12%;">KONTROL TİPİ</td><td style="width: 12%;">KONTROLLER</td><td style="width: 36%;">Belge No</td><td class="center">Uygun</td><td class="center">Uygun Değil</td><td colspan="2" class="center">N/A</td>
+        </tr>
+        <tr><td>BELGE KONT.</td><td>Ürün Uygunluk Belgesi</td><td></td><td></td><td class="center">☐</td><td class="center">☐</td><td colspan="2" class="center">☐</td></tr>
+        <tr><td colspan="2"></td><td>Hammalzeme Kalite Belgesi</td><td>{belgeno1}</td><td class="center">{t(b1_durum, 'Uygun')}</td><td class="center">{t(b1_durum, 'Uygun Değil')}</td><td colspan="2" class="center">{t(b1_durum, 'N/A')}</td></tr>
+        <tr><td colspan="2"></td><td>Kaplama/Boya COC Belgesi</td><td>{belgeno2}</td><td class="center">{t(b2_durum, 'Uygun')}</td><td class="center">{t(b2_durum, 'Uygun Değil')}</td><td colspan="2" class="center">{t(b2_durum, 'N/A')}</td></tr>
+        <tr><td colspan="2"></td><td>Isıl işlem / Kaynak işlemleri COC Belgesi</td><td></td><td></td><td class="center">☐</td><td class="center">☐</td><td colspan="2" class="center">☐</td></tr>
+        <tr><td colspan="2"></td><td>İrsaliye/teslim belgesi</td><td></td><td></td><td class="center">☐</td><td class="center">☐</td><td colspan="2" class="center">☐</td></tr>
+        <tr><td colspan="2">GÖZ KONT.</td><td>Parti miktarı doğruluğu</td><td></td><td></td><td class="center">☐</td><td class="center">☐</td><td colspan="2" class="center">☐</td></tr>
+        <tr><td colspan="2"></td><td>Ürün paketlemesi</td><td></td><td></td><td class="center">☐</td><td class="center">☐</td><td colspan="2" class="center">☐</td></tr>
+        <tr><td colspan="2"></td><td>Malzeme göz kontrolü</td><td></td><td></td><td class="center">☐</td><td class="center">☐</td><td colspan="2" class="center">☐</td></tr>
+        <tr><td colspan="2">ÖLÇÜ KONT.</td><td>Ölçü Kontrolü</td><td>{belgeno3}</td><td class="center">{t(b3_durum, 'Uygun')}</td><td class="center">{t(b3_durum, 'Uygun Değil')}</td><td colspan="2" class="center">{t(b3_durum, 'N/A')}</td></tr>
+        <tr><td colspan="2"></td><td>Mastar Kontrolü</td><td></td><td></td><td class="center">☐</td><td class="center">☐</td><td colspan="2" class="center">☐</td></tr>
+        <tr><td colspan="2">FONKS. KONT.</td><td>Ürünün çalışma durumu kontrolünü</td><td></td><td></td><td class="center">☐</td><td class="center">☐</td><td colspan="2" class="center">☐</td></tr>
+    </table>
+    <table>
+        <tr style="font-weight: bold; background-color: #E6E6E6; font-size: 8.5pt;">
+            <td style="width: 25%;">KONTROL ARACI ADI</td><td style="width: 35%;">KONTROL ARACI TİPİ</td><td style="width: 20%;">KONTROL ARACI NO</td><td style="width: 20%;">ÖLÇÜM BELGE NO</td>
+        </tr>
+        <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    </table>
+    <table>
+        <tr><td colspan="6" class="bg-gray">SONUÇ</td></tr>
+        <tr><td style="font-weight: bold; width: 20%;">KONTROL MİKTARI</td><td colspan="5">{kontrol_miktari}</td></tr>
+        <tr style="font-weight: bold;"><td>KARAR</td><td>{kabul_box} KABUL</td><td>{red_box} RED/İADE</td><td>{ayiklama_box} AYIKLAMA</td><td>{sartli_box} ŞARTLI KABUL</td><td style="font-size:8pt;">PROJE SORUMLUSU</td></tr>
+        <tr><td style="font-weight: bold;">MİKTAR</td><td>{kabul_miktar}</td><td>{red_iade_miktar}</td><td>{ayiklama_miktar}</td><td>{sartli_kabul_miktar}</td><td>{proje_sorumlusu}</td></tr>
+        <tr><td style="font-weight: bold;">TARİH</td><td>{k_tarih}</td><td>{r_tarih}</td><td>{a_tarih}</td><td>{s_tarih}</td><td>{p_tarih}</td></tr>
+    </table>
+    <table>
+        <tr><td class="bg-gray" style="text-align: left;">DEĞERL
