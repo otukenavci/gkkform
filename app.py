@@ -180,4 +180,18 @@ if submit:
         <tr><td style="font-weight: bold;">TARİH</td><td>{k_tarih}</td><td>{r_tarih}</td><td>{a_tarih}</td><td>{s_tarih}</td><td>{p_tarih}</td></tr>
     </table>
     <table>
-        <tr><td class="bg-gray" style="text-align: left;">DEĞERL
+        <tr><td class="bg-gray" style="text-align: left;">DEĞERLENDİRME ve AÇIKLAMALAR</td></tr>
+        <tr><td style="height: 120px; padding: 8px; vertical-align: top;"><b>{aciklama_baslik}</b><br><br>{aciklama_detay}</td></tr>
+    </table>
+    <table>
+        <tr><td style="width: 25%; font-weight: bold;">GKK SORUMLUSU ONAYI</td><td style="width: 25%;">AD SOYAD İMZA TARİH</td><td style="width: 50%; font-weight: bold;">ÖTÜKEN AVCI</td></tr>
+    </table>
+    </body></html>
+    """
+
+    st.download_button(
+        label="📥 Hazırlanan GKK Formunu Word Olarak İndir (.doc)",
+        data=word_html,
+        file_name=f"GKK_FORMU_{malzeme_no if malzeme_no else 'Belge'}.doc",
+        mime="application/msword"
+    )
