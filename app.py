@@ -158,4 +158,73 @@ if submit:
             <td>Ürün Uygunluk Belgesi</td><td></td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td>
         </tr>
         <tr>
-            <td>Hammalzeme Kalite Belgesi</td>
+            <td>Hammalzeme Kalite Belgesi</td><td>{belgeno1}</td><td class="center">{t(b1_durum, 'Uygun')}</td><td class="center">{t(b1_durum, 'Uygun Değil')}</td><td class="center">{t(b1_durum, 'N/A')}</td>
+        </tr>
+        <tr>
+            <td>Kaplama/Boya COC Belgesi</td><td>{belgeno2}</td><td class="center">{t(b2_durum, 'Uygun')}</td><td class="center">{t(b2_durum, 'Uygun Değil')}</td><td class="center">{t(b2_durum, 'N/A')}</td>
+        </tr>
+        <tr>
+            <td>Isıl işlem / Kaynak işlemleri COC Belgesi</td><td></td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td>
+        </tr>
+        <tr>
+            <td>İrsaliye/teslim belgesi</td><td></td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td>
+        </tr>
+        <tr>
+            <td rowspan="3" style="vertical-align: middle;"><b>GÖZ KONT.</b></td>
+            <td>Parti miktarı doğruluğu</td><td></td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td>
+        </tr>
+        <tr>
+            <td>Ürün paketlemesi</td><td></td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td>
+        </tr>
+        <tr>
+            <td>Malzeme göz kontrolü</td><td></td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td>
+        </tr>
+        <tr>
+            <td rowspan="2" style="vertical-align: middle;"><b>ÖLÇÜ KONT.</b></td>
+            <td>Ölçü Kontrolü</td><td>{belgeno3}</td><td class="center">{t(b3_durum, 'Uygun')}</td><td class="center">{t(b3_durum, 'Uygun Değil')}</td><td class="center">{t(b3_durum, 'N/A')}</td>
+        </tr>
+        <tr>
+            <td>Mastar Kontrolü</td><td></td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td>
+        </tr>
+        <tr>
+            <td style="vertical-align: middle;"><b>FONKS. KONT.</b></td>
+            <td>Ürünün çalışma durumu kontrolünü</td><td></td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td>
+        </tr>
+    </table>
+    
+    <table border="1" cellspacing="0" cellpadding="4">
+        <tr style="font-weight: bold; background-color: #E6E6E6; font-size: 8.5pt;">
+            <td style="width: 25%;">KONTROL ARACI ADI</td><td style="width: 35%;">KONTROL ARACI TİPİ</td><td style="width: 20%;">KONTROL ARACI NO</td><td style="width: 20%;">ÖLÇÜM BELGE NO</td>
+        </tr>
+        <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    </table>
+    
+    <table border="1" cellspacing="0" cellpadding="4">
+        <tr><td colspan="6" class="bg-gray">SONUÇ</td></tr>
+        <tr><td style="font-weight: bold; width: 16%;">KONTROL MİKTARI</td><td colspan="5">{kontrol_miktari}</td></tr>
+        <tr style="font-weight: bold;">
+            <td style="width: 16%;">KARAR</td><td style="width: 16%;">{kabul_box} KABUL</td><td style="width: 16%;">{red_box} RED/İADE</td>
+            <td style="width: 16%;">{ayiklama_box} AYIKLAMA</td><td style="width: 16%;">{sartli_box} ŞARTLI KABUL</td>
+            <td style="font-size:8pt; width: 20%;">PROJE SORUMLUSU</td>
+        </tr>
+        <tr><td style="font-weight: bold;">MİKTAR</td><td>{kabul_miktar}</td><td>{red_iade_miktar}</td><td>{ayiklama_miktar}</td><td>{sartli_kabul_miktar}</td><td>{proje_sorumlusu}</td></tr>
+        <tr><td style="font-weight: bold;">TARİH</td><td>{k_tarih}</td><td>{r_tarih}</td><td>{a_tarih}</td><td>{s_tarih}</td><td>{p_tarih}</td></tr>
+    </table>
+    
+    <table border="1" cellspacing="0" cellpadding="4">
+        <tr><td class="bg-gray" style="text-align: left;">DEĞERLENDİRME ve AÇIKLAMALAR</td></tr>
+        <tr><td style="height: 120px; padding: 8px; vertical-align: top;"><b>{aciklama_baslik}</b><br><br>{aciklama_detay}</td></tr>
+    </table>
+    
+    <table border="1" cellspacing="0" cellpadding="4">
+        <tr><td style="width: 25%; font-weight: bold;">GKK SORUMLUSU ONAYI</td><td style="width: 25%;">AD SOYAD İMZA TARİH</td><td style="width: 50%; font-weight: bold;">ÖTÜKEN AVCI</td></tr>
+    </table>
+    </body></html>
+    """
+
+    st.download_button(
+        label="📥 Hazırlanan GKK Formunu Word Olarak İndir (.doc)",
+        data=word_html,
+        file_name=f"GKK_FORMU_{malzeme_no if malzeme_no else 'Belge'}.doc",
+        mime="application/msword"
+    )
